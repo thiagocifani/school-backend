@@ -2,7 +2,7 @@ module Api
   module V1
     class CoraWebhooksController < BaseController
       skip_before_action :authenticate_user!, only: [:receive]
-      skip_before_action :verify_authenticity_token, only: [:receive]
+      # Note: verify_authenticity_token is not needed for API-only apps using ActionController::API
       
       # Endpoint to receive webhooks from Cora
       def receive
