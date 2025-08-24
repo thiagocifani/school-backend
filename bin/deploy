@@ -12,6 +12,12 @@ if [ ! -f "Gemfile" ]; then
     exit 1
 fi
 
+# Clean up any local gem installations
+echo "🧹 Cleaning up local gem installations..."
+rm -rf ruby/
+rm -rf .bundle/
+rm -rf vendor/bundle/
+
 # Check if Heroku CLI is installed
 if ! command -v heroku &> /dev/null; then
     echo "❌ Error: Heroku CLI is not installed."
@@ -76,7 +82,14 @@ heroku config:set MAILER_HOST=$APP_NAME.herokuapp.com --app $APP_NAME
 
 # Deploy to Heroku
 echo "🚢 Deploying to Heroku..."
+
+# Ensure we're not committing unwanted files
+echo "📝 Preparing Git repository..."
 git add .
+git reset HEAD ruby/ 2>/dev/null || true
+git reset HEAD .bundle/ 2>/dev/null || true
+git reset HEAD vendor/bundle/ 2>/dev/null || true
+
 git commit -m "Deploy to Heroku - $(date)" || echo "No changes to commit"
 
 # Add heroku remote if it doesn't exist
