@@ -1,0 +1,54 @@
+{
+  "name": "School System API",
+  "description": "Rails API for School Management System",
+  "keywords": ["rails", "api", "school", "management"],
+  "website": "https://github.com/your-username/school-system",
+  "repository": "https://github.com/your-username/school-system",
+  "logo": "https://your-logo-url.com/logo.png",
+  "success_url": "/up",
+  "scripts": {
+    "postdeploy": "bundle exec rails db:migrate db:seed"
+  },
+  "env": {
+    "RAILS_ENV": {
+      "value": "production"
+    },
+    "RAILS_SERVE_STATIC_FILES": {
+      "value": "true"
+    },
+    "RAILS_LOG_TO_STDOUT": {
+      "value": "true"
+    },
+    "SECRET_KEY_BASE": {
+      "generator": "secret"
+    },
+    "JWT_SECRET": {
+      "generator": "secret"
+    },
+    "MAILER_HOST": {
+      "value": "your-app-name.herokuapp.com"
+    },
+    "FRONTEND_URL": {
+      "value": "https://your-frontend-app.herokuapp.com"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    },
+    "worker": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    "heroku-postgresql:mini",
+    "heroku-redis:mini"
+  ],
+  "buildpacks": [
+    {
+      "url": "heroku/ruby"
+    }
+  ]
+}

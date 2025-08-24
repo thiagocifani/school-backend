@@ -1,0 +1,117 @@
+#!/bin/bash
+
+# School System API - Heroku Deployment Script
+
+set -e  # Exit on any error
+
+echo "🚀 Starting deployment of School System API..."
+
+# Check if we're in the right directory
+if [ ! -f "Gemfile" ]; then
+    echo "❌ Error: Gemfile not found. Please run this script from the API root directory."
+    exit 1
+fi
+
+# Check if Heroku CLI is installed
+if ! command -v heroku &> /dev/null; then
+    echo "❌ Error: Heroku CLI is not installed."
+    echo "   Please install it from: https://devcenter.heroku.com/articles/heroku-cli"
+    exit 1
+fi
+
+# Check if logged into Heroku
+if ! heroku auth:whoami &> /dev/null; then
+    echo "❌ Error: Please login to Heroku first:"
+    echo "   heroku login"
+    exit 1
+fi
+
+# Get app name from command line argument or prompt
+if [ -z "$1" ]; then
+    echo -n "Enter your Heroku app name for the API: "
+    read APP_NAME
+else
+    APP_NAME=$1
+fi
+
+echo "📱 Deploying to: $APP_NAME"
+
+# Check if app exists, create if it doesn't
+if ! heroku apps:info $APP_NAME &> /dev/null; then
+    echo "📝 App doesn't exist. Creating new Heroku app: $APP_NAME"
+    heroku create $APP_NAME
+    
+    # Add required addons
+    echo "📦 Adding PostgreSQL addon..."
+    heroku addons:create heroku-postgresql:mini --app $APP_NAME
+    
+    echo "📦 Adding Redis addon..."
+    heroku addons:create heroku-redis:mini --app $APP_NAME
+else
+    echo "✅ App exists: $APP_NAME"
+fi
+
+# Set required environment variables
+echo "⚙️  Setting environment variables..."
+heroku config:set RAILS_ENV=production --app $APP_NAME
+heroku config:set RAILS_SERVE_STATIC_FILES=true --app $APP_NAME
+heroku config:set RAILS_LOG_TO_STDOUT=true --app $APP_NAME
+heroku config:set HEROKU_APP_NAME=$APP_NAME --app $APP_NAME
+
+# Generate secret keys if not set
+if ! heroku config:get SECRET_KEY_BASE --app $APP_NAME &> /dev/null; then
+    echo "🔑 Generating SECRET_KEY_BASE..."
+    SECRET_KEY=$(openssl rand -hex 64)
+    heroku config:set SECRET_KEY_BASE=$SECRET_KEY --app $APP_NAME
+fi
+
+if ! heroku config:get JWT_SECRET --app $APP_NAME &> /dev/null; then
+    echo "🔑 Generating JWT_SECRET..."
+    JWT_SECRET=$(openssl rand -hex 64)
+    heroku config:set JWT_SECRET=$JWT_SECRET --app $APP_NAME
+fi
+
+# Set mailer host
+heroku config:set MAILER_HOST=$APP_NAME.herokuapp.com --app $APP_NAME
+
+# Deploy to Heroku
+echo "🚢 Deploying to Heroku..."
+git add .
+git commit -m "Deploy to Heroku - $(date)" || echo "No changes to commit"
+
+# Add heroku remote if it doesn't exist
+if ! git remote get-url heroku &> /dev/null; then
+    heroku git:remote -a $APP_NAME
+fi
+
+git push heroku main
+
+# Run migrations
+echo "🗄️  Running database migrations..."
+heroku run rails db:migrate --app $APP_NAME
+
+# Seed database if needed
+echo -n "Do you want to seed the database? (y/n): "
+read SEED_DB
+if [[ $SEED_DB == "y" || $SEED_DB == "Y" ]]; then
+    echo "🌱 Seeding database..."
+    heroku run rails db:seed --app $APP_NAME
+fi
+
+# Scale web and worker dynos
+echo "⚖️  Scaling dynos..."
+heroku ps:scale web=1 worker=1 --app $APP_NAME
+
+# Open the app
+echo "✅ Deployment completed successfully!"
+echo "🌐 Your API is available at: https://$APP_NAME.herokuapp.com"
+echo "🔍 Health check: https://$APP_NAME.herokuapp.com/up"
+
+echo -n "Do you want to open the app? (y/n): "
+read OPEN_APP
+if [[ $OPEN_APP == "y" || $OPEN_APP == "Y" ]]; then
+    heroku open --app $APP_NAME
+fi
+
+echo "📊 To view logs: heroku logs --tail --app $APP_NAME"
+echo "🎉 Deployment complete!"
