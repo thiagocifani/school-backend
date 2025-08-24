@@ -1,0 +1,18 @@
+current directory: /Users/thiagocifani01/projects/cursor/escola/school-system/school-api/ruby/3.4.0/gems/racc-1.8.1/ext/racc/cparse
+/Users/thiagocifani01/.asdf/installs/ruby/3.4.1/bin/ruby extconf.rb
+creating Makefile
+
+current directory: /Users/thiagocifani01/projects/cursor/escola/school-system/school-api/ruby/3.4.0/gems/racc-1.8.1/ext/racc/cparse
+make DESTDIR\= sitearchdir\=./.gem.20250817-31832-ysshez sitelibdir\=./.gem.20250817-31832-ysshez clean
+
+current directory: /Users/thiagocifani01/projects/cursor/escola/school-system/school-api/ruby/3.4.0/gems/racc-1.8.1/ext/racc/cparse
+make DESTDIR\= sitearchdir\=./.gem.20250817-31832-ysshez sitelibdir\=./.gem.20250817-31832-ysshez
+compiling cparse.c
+linking shared-object racc/cparse.bundle
+
+current directory: /Users/thiagocifani01/projects/cursor/escola/school-system/school-api/ruby/3.4.0/gems/racc-1.8.1/ext/racc/cparse
+make DESTDIR\= sitearchdir\=./.gem.20250817-31832-ysshez sitelibdir\=./.gem.20250817-31832-ysshez install
+/opt/homebrew/bin/ginstall -c -m 0755 cparse.bundle ./.gem.20250817-31832-ysshez/racc
+
+current directory: /Users/thiagocifani01/projects/cursor/escola/school-system/school-api/ruby/3.4.0/gems/racc-1.8.1/ext/racc/cparse
+make DESTDIR\= sitearchdir\=./.gem.20250817-31832-ysshez sitelibdir\=./.gem.20250817-31832-ysshez clean
