@@ -3,7 +3,7 @@ class CoraWebhook < ApplicationRecord
   belongs_to :cora_invoice, foreign_key: 'invoice_id', primary_key: 'invoice_id', optional: true
   
   # Enums
-  enum status: {
+  enum :status, {
     pending: 'pending',
     processed: 'processed',
     failed: 'failed',

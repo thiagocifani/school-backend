@@ -111,3 +111,7 @@ public/uploads/
 
 # Ignore node modules (if any)
 node_modules/
+log
+/log
+tmp
+/tmp
