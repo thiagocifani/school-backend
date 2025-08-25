@@ -26,10 +26,10 @@
       "generator": "secret"
     },
     "MAILER_HOST": {
-      "value": "your-app-name.herokuapp.com"
+      "value": "https://raizes-api-91d5474e5ebf.herokuapp.com"
     },
     "FRONTEND_URL": {
-      "value": "https://your-frontend-app.herokuapp.com"
+      "value": "https://raizes-frontend-994c596b2d99.herokuapp.com/"
     }
   },
   "formation": {
@@ -42,13 +42,11 @@
       "size": "basic"
     }
   },
-  "addons": [
-    "heroku-postgresql:mini",
-    "heroku-redis:mini"
-  ],
+  "addons": ["heroku-postgresql:mini", "heroku-redis:mini"],
   "buildpacks": [
     {
       "url": "heroku/ruby"
     }
   ]
 }
+
