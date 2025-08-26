@@ -115,3 +115,7 @@ log
 /log
 tmp
 /tmp
+.DS_Store
+.env.local
+.env
+
