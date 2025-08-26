@@ -41,6 +41,7 @@ gem "sentry-rails"
 
 # Payment Gateway
 gem "httparty"
+gem "faraday"
 gem "money-rails"
 
 group :development, :test do

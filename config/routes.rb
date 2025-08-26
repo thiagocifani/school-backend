@@ -83,6 +83,7 @@ Rails.application.routes.draw do
       resources :salaries do
         member do
           put :pay
+          post :generate_cora_pix
         end
         collection do
           post :bulk_generate

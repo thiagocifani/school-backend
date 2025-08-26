@@ -37,7 +37,7 @@ module Api
             type: 'lesson_completed',
             title: "Aula #{lesson.lesson_number} concluída",
             description: "#{lesson.diary.subject.name} - #{lesson.diary.school_class.name}",
-            date: lesson.date,
+            date: lesson.date&.strftime('%Y-%m-%d'),
             icon: 'book'
           }
         end
@@ -52,7 +52,7 @@ module Api
             type: 'occurrence_created',
             title: occurrence.title,
             description: "#{occurrence.student.name} - #{occurrence.teacher.name}",
-            date: occurrence.date,
+            date: occurrence.date&.strftime('%Y-%m-%d'),
             icon: 'alert'
           }
         end
@@ -67,7 +67,7 @@ module Api
             type: 'grade_added',
             title: "Nova nota lançada",
             description: "#{grade.student.name} - #{grade.diary.subject.name}: #{grade.value}",
-            date: grade.date,
+            date: grade.date&.strftime('%Y-%m-%d'),
             icon: 'award'
           }
         end
@@ -91,7 +91,7 @@ module Api
             type: 'lesson_planned',
             title: "Aula #{lesson.lesson_number}",
             description: "#{lesson.diary.subject.name} - #{lesson.diary.school_class.name}",
-            date: lesson.date,
+            date: lesson.date&.strftime('%Y-%m-%d'),
             time: "#{lesson.diary.school_class.name}", # Placeholder para horário
             icon: 'calendar'
           }
@@ -109,7 +109,7 @@ module Api
             type: 'tuition_due',
             title: "Mensalidade vencendo",
             description: "#{tuition.student.name} - R$ #{tuition.amount}",
-            date: tuition.due_date,
+            date: tuition.due_date&.strftime('%Y-%m-%d'),
             icon: 'dollar-sign'
           }
         end
@@ -216,19 +216,29 @@ module Api
       end
       
       def compile_pending_transactions
-        pending_transactions = FinancialTransaction.pending
-                                                  .includes(:reference, :cora_invoice)
-                                                  .order(due_date: :asc)
-                                                  .limit(10)
+        # Get pending FinancialTransactions
+        pending_financial_transactions = FinancialTransaction.pending
+                                                            .includes(:reference, :cora_invoice)
+                                                            .order(due_date: :asc)
+                                                            .limit(5)
         
-        pending_transactions.map do |transaction|
-          {
-            id: transaction.id,
+        # Get pending tuitions that aren't already in FinancialTransaction
+        pending_tuitions = Tuition.pending
+                                 .includes(:student)
+                                 .order(due_date: :asc)
+                                 .limit(5)
+        
+        transactions_data = []
+        
+        # Map FinancialTransactions
+        pending_financial_transactions.each do |transaction|
+          transactions_data << {
+            id: "ft_#{transaction.id}",
             type: transaction.transaction_type,
             description: transaction.description,
             amount: transaction.amount,
             formatted_amount: transaction.formatted_amount,
-            due_date: transaction.due_date,
+            due_date: transaction.due_date&.strftime('%Y-%m-%d'),
             days_overdue: transaction.days_overdue,
             reference: build_transaction_reference(transaction),
             cora_invoice: transaction.cora_invoice ? {
@@ -238,9 +248,36 @@ module Api
               status: transaction.cora_invoice.status
             } : nil,
             icon: transaction.type_icon,
-            badge_class: transaction.status_badge_class
+            badge_class: transaction.status_badge_class,
+            source: 'financial_transaction'
           }
         end
+        
+        # Map Tuitions
+        pending_tuitions.each do |tuition|
+          transactions_data << {
+            id: "tuition_#{tuition.id}",
+            type: 'tuition',
+            description: "Mensalidade #{tuition.student.name} - #{tuition.due_date.strftime('%m/%Y')}",
+            amount: tuition.amount,
+            formatted_amount: "R$ #{tuition.amount.to_f.to_s.gsub('.', ',')}",
+            due_date: tuition.due_date&.strftime('%Y-%m-%d'),
+            days_overdue: tuition.days_overdue,
+            reference: {
+              type: 'Student',
+              name: tuition.student.name,
+              registration: tuition.student.registration_number,
+              class_name: tuition.student.school_class&.full_name
+            },
+            cora_invoice: nil,
+            icon: 'graduation-cap',
+            badge_class: tuition.status == 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800',
+            source: 'tuition'
+          }
+        end
+        
+        # Sort by due date and return the most urgent ones
+        transactions_data.sort_by { |t| t[:due_date] }.first(10)
       end
       
       def compile_financial_overview
@@ -313,6 +350,22 @@ module Api
             name: teacher.user.name,
             email: teacher.user.email
           }
+        when 'Salary'
+          salary = transaction.reference
+          {
+            type: 'Teacher',
+            name: salary.teacher.user.name,
+            email: salary.teacher.user.email,
+            salary_month: "#{salary.month}/#{salary.year}"
+          }
+        when 'Tuition'
+          tuition = transaction.reference
+          {
+            type: 'Student',
+            name: tuition.student.name,
+            registration: tuition.student.registration_number,
+            class_name: tuition.student.school_class&.full_name
+          }
         else
           {
             type: transaction.reference.class.name,
@@ -327,7 +380,7 @@ module Api
           description: transaction.description,
           amount: transaction.final_amount,
           formatted_amount: transaction.formatted_final_amount,
-          paid_date: transaction.paid_date,
+          paid_date: transaction.paid_date&.strftime('%Y-%m-%d'),
           payment_method: transaction.payment_method,
           type: transaction.transaction_type,
           reference: build_transaction_reference(transaction)

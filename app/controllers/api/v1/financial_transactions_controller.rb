@@ -336,8 +336,8 @@ module Api
           final_amount: transaction.final_amount,
           formatted_amount: transaction.formatted_amount,
           formatted_final_amount: transaction.formatted_final_amount,
-          due_date: transaction.due_date,
-          paid_date: transaction.paid_date,
+          due_date: transaction.due_date&.strftime('%Y-%m-%d'),
+          paid_date: transaction.paid_date&.strftime('%Y-%m-%d'),
           status: transaction.status,
           payment_method: transaction.payment_method,
           description: transaction.description,
@@ -352,8 +352,8 @@ module Api
           external_id: transaction.external_id,
           reference: reference_json(transaction.reference),
           cora_invoice: transaction.cora_invoice ? cora_invoice_json(transaction.cora_invoice) : nil,
-          created_at: transaction.created_at,
-          updated_at: transaction.updated_at
+          created_at: transaction.created_at&.iso8601,
+          updated_at: transaction.updated_at&.iso8601
         }
       end
       
@@ -420,7 +420,7 @@ module Api
           status: cora_invoice.status,
           amount: cora_invoice.amount,
           formatted_amount: cora_invoice.formatted_amount,
-          due_date: cora_invoice.due_date,
+          due_date: cora_invoice.due_date&.strftime('%Y-%m-%d'),
           customer_name: cora_invoice.customer_name,
           customer_email: cora_invoice.customer_email,
           invoice_type: cora_invoice.invoice_type,
@@ -432,9 +432,9 @@ module Api
           can_be_cancelled: cora_invoice.can_be_cancelled?,
           overdue: cora_invoice.overdue?,
           days_overdue: cora_invoice.days_overdue,
-          paid_at: cora_invoice.paid_at,
-          created_at: cora_invoice.created_at,
-          updated_at: cora_invoice.updated_at
+          paid_at: cora_invoice.paid_at&.iso8601,
+          created_at: cora_invoice.created_at&.iso8601,
+          updated_at: cora_invoice.updated_at&.iso8601
         }
       end
       

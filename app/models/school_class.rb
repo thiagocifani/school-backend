@@ -8,7 +8,8 @@ class SchoolClass < ApplicationRecord
   has_many :class_subjects, dependent: :destroy
   has_many :subjects, through: :class_subjects
   has_many :teachers, through: :class_subjects
-  has_many :lessons, through: :class_subjects
+  has_many :diaries, dependent: :destroy
+  has_many :lessons, through: :diaries
   
   validates :name, presence: true
   validates :section, presence: true

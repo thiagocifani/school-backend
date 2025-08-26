@@ -6,7 +6,9 @@ A integração com a API do Cora está **100% implementada** e pronta para uso e
 
 ### 🎯 Funcionalidades Implementadas
 
+- ✅ **OAuth Client Credentials** para autenticação automática de tokens
 - ✅ **mTLS Authentication** com certificados do cliente
+- ✅ **Token caching** com renovação automática
 - ✅ **Criação de faturas/boletos** automática
 - ✅ **Geração de PIX QR Code** para pagamentos
 - ✅ **Auto-geração** de boletos ao criar mensalidades
@@ -19,12 +21,33 @@ A integração com a API do Cora está **100% implementada** e pronta para uso e
 ### 1. Variáveis de Ambiente (.env)
 
 ```env
-# Cora API Configuration
+# Cora API Configuration (Corrigido)
 CORA_BASE_URL=https://matls-clients.api.stage.cora.com.br
 CORA_CLIENT_ID=int-1lIGCGzdk23DhSrXJa26zh
-CORA_CERTIFICATE_PATH=config/certs/cora/certificate.crt
+CORA_CERTIFICATE_PATH=config/certs/cora/certificate.pem
 CORA_PRIVATE_KEY_PATH=config/certs/cora/private-key.key
 CORA_ENVIRONMENT=staging
+```
+
+### 🔐 OAuth Client Credentials Flow com mTLS + Idempotency-Key
+
+O sistema implementa o fluxo OAuth correto conforme documentação oficial do Cora:
+
+1. **Token Generation**: Obtém access tokens usando client_credentials via mTLS (apenas para `/token`)
+2. **Dual Connection**: Conexão separada com mTLS apenas para gerar token
+3. **API Calls**: Chamadas normais da API usam apenas `Idempotency-Key` (sem mTLS)
+4. **Token Caching**: Armazena tokens em cache com renovação automática (90% do tempo de expiração)
+5. **Automatic Headers**: Inclui o `Idempotency-Key` automaticamente em todas as requisições da API
+
+#### Fluxo de Autenticação Correto:
+
+```
+1. Cliente faz requisição → CoraApiService
+2. Service verifica token em cache
+3. Se expirado, usa conexão mTLS para solicitar novo token via POST /token
+4. Token é cacheado e usado como Idempotency-Key nas próximas requisições
+5. Chamadas da API (/v2/invoices, etc.) usam apenas Idempotency-Key (sem mTLS)
+6. mTLS é usado APENAS para renovação de token quando expira
 ```
 
 ### 2. Certificados
@@ -80,28 +103,69 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDxxxxxxxxxxxxx
 
 ## 🧪 Testando a Integração
 
+### Teste do OAuth Token Generation (mTLS + Idempotency-Key)
+
+```bash
+# Testar geração de tokens OAuth via mTLS e uso como Idempotency-Key
+BUNDLE_GEMFILE=Gemfile rails runner "
+service = CoraApiService.new
+begin
+  token = service.send(:get_access_token)
+  puts '✅ Token OAuth gerado com sucesso via mTLS: ' + token[0..20] + '...'
+  puts '✅ Conexão mTLS: Apenas para /token endpoint'
+  puts '✅ API Calls: Usam Idempotency-Key (sem mTLS)'
+  puts '📋 Endpoint token: POST /token (com certificados)'
+  puts '📋 Endpoint API: /v2/invoices (apenas com token)'
+rescue => e
+  puts '⚠️ Erro na autenticação: ' + e.message
+  puts '📝 Verifique certificados em config/certs/cora/ e CORA_CLIENT_ID'
+end
+"
+```
+
 ### Teste Sem Certificados (Desenvolvimento)
 
 ```bash
 # O sistema funciona em modo mock quando certificados não estão disponíveis
 BUNDLE_GEMFILE=Gemfile rails runner "
 service = CoraApiService.new
-puts 'Service inicializado com sucesso'
+puts '✅ Service inicializado com sucesso'
+puts '📝 Modo desenvolvimento: usando tokens mock'
 "
 ```
 
 ### Teste Com Certificados Reais
 
-1. Adicione os certificados reais
-2. Execute o teste de integração:
+1. Configure as variáveis de ambiente obrigatórias:
+   ```env
+   CORA_CLIENT_ID=seu_client_id_aqui
+   CORA_BASE_URL=https://matls-clients.api.stage.cora.com.br
+   CORA_CERTIFICATE_PATH=config/certs/cora/certificate.pem
+   CORA_PRIVATE_KEY_PATH=config/certs/cora/private-key.key
+   ```
+
+2. Execute o teste de integração completa:
 
 ```bash
 BUNDLE_GEMFILE=Gemfile rails runner "
-transaction = FinancialTransaction.tuition.pending.first
-cora_invoice = CoraInvoice.create_for_financial_transaction(transaction)
-service = CoraApiService.new
-response = service.create_invoice(cora_invoice)
-puts 'Boleto criado: ' + cora_invoice.boleto_url
+begin
+  transaction = FinancialTransaction.tuition.pending.first
+  cora_invoice = CoraInvoice.create_for_financial_transaction(transaction)
+  service = CoraApiService.new
+  
+  puts '1️⃣ Gerando token OAuth...'
+  token = service.send(:get_access_token)
+  puts '✅ Token OAuth: ' + token[0..20] + '...'
+  
+  puts '2️⃣ Criando fatura na API Cora...'
+  response = service.create_invoice(cora_invoice)
+  puts '✅ Boleto criado: ' + cora_invoice.boleto_url
+  puts '✅ PIX QR Code: ' + (cora_invoice.pix_qr_code_url || 'N/A')
+  
+rescue => e
+  puts '❌ Erro na integração: ' + e.message
+  puts '📋 Stack trace: ' + e.backtrace.first(3).join(\"\n\")
+end
 "
 ```
 

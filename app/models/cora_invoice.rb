@@ -78,7 +78,8 @@ class CoraInvoice < ApplicationRecord
   end
 
   def self.create_for_salary_transaction(transaction)
-    teacher = transaction.reference
+    salary = transaction.reference
+    teacher = salary&.teacher
 
     return nil unless teacher&.user
 
