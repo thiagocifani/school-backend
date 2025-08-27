@@ -136,18 +136,21 @@ module Api
       end
       
       def compile_student_attendance(student, term)
-        # Implementar cálculo de presença baseado no período
+        # Se o aluno não possui turma associada, retorna zeros
+        return { totalLessons: 0, presentCount: 0, absentCount: 0, percentage: 0 } if student.school_class_id.blank?
+
+        # Cálculo de presença baseado no período e na turma do aluno
         total_lessons = Lesson.joins(:diary)
-                             .where(diaries: { school_class: student.school_class })
+                             .where(diaries: { school_class_id: student.school_class_id })
                              .where(date: term.start_date..term.end_date)
                              .count
-        
+
         present_count = Attendance.joins(:lesson)
                                  .where(student: student)
                                  .where(lessons: { date: term.start_date..term.end_date })
                                  .where(status: :present)
                                  .count
-        
+
         {
           totalLessons: total_lessons,
           presentCount: present_count,

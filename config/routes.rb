@@ -46,6 +46,7 @@ Rails.application.routes.draw do
           get :students
           get :statistics
         end
+        resources :occurrences, only: [:index, :create]
         resources :lessons do
           member do
             get :attendances
